@@ -9,6 +9,7 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 20
     permissions:
       contents: write
     steps:
@@ -47,4 +48,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.ref_name }}
         shell: pwsh
-        run: gh release create $env:RELEASE_TAG release/*.exe release/SHA256SUMS.txt --title "Quiet Browser $env:RELEASE_TAG" --notes-file docs/RELEASE.md
+        run: |
+          gh release view $env:RELEASE_TAG --json id *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Output 'Release already published. The checked CI build remains available as an Actions artifact.'
+          } else {
+            gh release create $env:RELEASE_TAG release/*.exe release/SHA256SUMS.txt --title "Quiet Browser $env:RELEASE_TAG" --notes-file docs/RELEASE.md
+          }
