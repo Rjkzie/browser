@@ -21,6 +21,7 @@ async function attachFilter(session, extensionId, onBlocked = () => {}) {
   const { webContents } = require("electron");
   let background;
   const deadline = Date.now() + 30000;
+  const isReady=async()=>Promise.race([background.executeJavaScript('globalThis.µBlock?.readyToFilter===true').catch(()=>false),new Promise(resolve=>setTimeout(()=>resolve(false),1000))]);
   while (Date.now() < deadline) {
     background = webContents
       .getAllWebContents()
@@ -32,18 +33,14 @@ async function attachFilter(session, extensionId, onBlocked = () => {}) {
       );
     if (
       background &&
-      (await background
-        .executeJavaScript("globalThis.µBlock?.readyToFilter===true")
-        .catch(() => false))
+      (await isReady())
     )
       break;
     await new Promise((r) => setTimeout(r, 100));
   }
   if (
     !background ||
-    !(await background
-      .executeJavaScript("globalThis.µBlock?.readyToFilter===true")
-      .catch(() => false))
+    !(await isReady())
   )
     throw Error("Фильтры uBlock не готовы");
   const types = {

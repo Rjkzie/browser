@@ -162,6 +162,7 @@ async function browserSession(name) {
   return pending;
 }
 async function initializeSession(ses, tor) {
+  if(smoke)console.log('SMOKE: initialize browser session');
   sessions.add(ses);
   if (tor) {
     await ses.clearStorageData();
@@ -231,8 +232,10 @@ async function initializeSession(ses, tor) {
         blocked++;
         emit();
       });
+      if(smoke)console.log('SMOKE: uBlock ready');
       extensionState.set(ses, `uBlock Origin ${ext.version}`);
     } catch (e) {
+      if(smoke)console.log('SMOKE: uBlock error',e.message);
       extensionState.set(ses, `uBlock не загружен: ${e.message}`);
     }
   } else extensionState.set(ses, "Блокировщик отключён");
