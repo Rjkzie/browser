@@ -1,0 +1,56 @@
+{
+  "name": "quiet-browser",
+  "productName": "Quiet Browser",
+  "version": "0.1.0",
+  "description": "Private desktop browser with AI sidebar and managed network tools",
+  "main": "src/main.cjs",
+  "author": "Quiet Browser contributors",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.cjs",
+    "smoke": "electron . --smoke-test",
+    "bundle:components": "node scripts/bundle-components.cjs",
+    "build:native": "node scripts/native-build.cjs",
+    "build": "node scripts/prepare-distribution.cjs && electron-builder --win portable --x64"
+  },
+  "devDependencies": {
+    "electron": "44.8.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "local.quiet.browser",
+    "asar": true,
+    "compression": "store",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "test/smoke.cjs",
+      "package.json",
+      "README.md",
+      "LICENSE"
+    ],
+    "extraResources": [
+      {
+        "from": "components",
+        "to": "components",
+        "filter": [
+          "manifest.json",
+          "THIRD-PARTY.md",
+          "awg/**",
+          "tor/**/unpacked/**",
+          "xray/**/unpacked/**",
+          "zapret/**/unpacked/**",
+          "ublock/**/unpacked/**"
+        ]
+      }
+    ],
+    "win": {
+      "target": "portable",
+      "signAndEditExecutable": false
+    },
+    "artifactName": "Quiet-Browser-${version}-Windows-x64.${ext}"
+  }
+}

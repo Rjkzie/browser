@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <title>Quiet Browser</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="tabbar">
+        <div class="brand">
+          <span class="logo">q</span>quiet<span class="beta">DEV 0.1</span>
+        </div>
+        <div id="tabs" role="tablist" aria-label="Вкладки"></div>
+        <button
+          id="new-tab"
+          class="icon"
+          title="Новая вкладка (Ctrl+T)"
+          aria-label="Новая вкладка"
+        >
+          +
+        </button>
+      </div>
+      <div class="toolbar">
+        <button id="back" class="icon" title="Назад" aria-label="Назад">
+          ←</button
+        ><button id="forward" class="icon" title="Вперёд" aria-label="Вперёд">
+          →</button
+        ><button
+          id="reload"
+          class="icon"
+          title="Обновить"
+          aria-label="Обновить"
+        >
+          ↻
+        </button>
+        <form id="address-form">
+          <span id="security">◈</span
+          ><input
+            id="address"
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="Адрес или поисковый запрос"
+            placeholder="Поиск или адрес сайта"
+          /><kbd>Ctrl L</kbd>
+        </form>
+        <button id="route" class="route">Прямое</button
+        ><button
+          id="settings"
+          class="icon"
+          title="Настройки"
+          aria-label="Настройки"
+        >
+          ⚙
+        </button>
+      </div>
+    </header>
+    <main id="main">
+      <section id="home">
+        <div class="home-inner">
+          <div class="eyebrow">ЛИЧНОЕ ПРОСТРАНСТВО В СЕТИ</div>
+          <h1>Интернет.<br /><span>На твоих условиях.</span></h1>
+          <p class="intro">Твои поисковики. Твои нейросети. Твой маршрут.</p>
+          <form id="home-search">
+            <span>⌕</span
+            ><input
+              id="search-input"
+              autocomplete="off"
+              aria-label="Поиск в интернете"
+              placeholder="Что ищем сегодня?"
+            /><button type="submit">Найти ↗</button>
+          </form>
+          <div class="search-caption">
+            <span id="engine-name">DuckDuckGo</span
+            ><button id="choose-search" class="text-button">
+              Изменить поиск
+            </button>
+          </div>
+          <div id="quicklinks">
+            <button data-url="https://www.youtube.com/">
+              <span>▶</span>YouTube</button
+            ><button data-url="https://discord.com/app">
+              <span>◉</span>Discord</button
+            ><button data-url="https://github.com/"><span>⌘</span>GitHub</button
+            ><button data-url="https://check.torproject.org/">
+              <span>◎</span>Проверить Tor
+            </button>
+          </div>
+          <div class="home-bottom">
+            <div><span class="dot"></span>Без аналитики приложения</div>
+            <div>Никаких подсказок с удалённого сервера</div>
+          </div>
+        </div>
+        <div class="home-mark">q</div>
+      </section>
+      <section id="page-error" hidden>
+        <span class="error-mark">!</span>
+        <h2>Страница не открылась</h2>
+        <p id="page-error-text"></p>
+        <p>Проверь маршрут и подключение. Автоматической смены прокси нет.</p>
+        <button id="retry">Повторить</button>
+      </section>
+      <aside id="ai-panel" hidden>
+        <div class="ai-head">
+          <strong id="ai-title">AI</strong>
+          <div>
+            <button
+              id="ai-tab"
+              title="Открыть отдельной вкладкой"
+              aria-label="Открыть AI вкладкой"
+            >
+              ↗</button
+            ><button
+              id="ai-close"
+              title="Закрыть панель"
+              aria-label="Закрыть AI"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+        <div class="ai-placeholder">
+          Загрузка сайта…<small
+            >Сайт может потребовать вход или проверку CAPTCHA.</small
+          >
+        </div>
+      </aside>
+    </main>
+    <nav class="rail" aria-label="Нейросети и инструменты">
+      <span class="rail-label">AI</span
+      ><button data-ai="perplexity" title="Perplexity" aria-label="Perplexity">
+        P</button
+      ><button data-ai="gpt" title="ChatGPT" aria-label="ChatGPT">G</button
+      ><button data-ai="deepseek" title="DeepSeek" aria-label="DeepSeek">
+        D</button
+      ><button data-ai="qwen" title="Qwen" aria-label="Qwen">Q</button>
+      <div class="rail-line"></div>
+      <button id="network" title="Подключения" aria-label="Подключения">
+        ◎</button
+      ><button
+        id="blocker"
+        title="Настройки uBlock Origin"
+        aria-label="uBlock Origin"
+      >
+        uB</button
+      ><button id="developer" title="DevTools" aria-label="DevTools">
+        &lt;/&gt;</button
+      ><span class="rail-bottom">LOCAL<br />FIRST</span>
+    </nav>
+    <footer>
+      <span id="status">Готово</span
+      ><span id="privacy-status"
+        >uBlock Origin · проверка при открытии сайта</span
+      >
+    </footer>
+    <div id="toast" role="status" hidden></div>
+    <dialog id="settings-dialog">
+      <div class="dialog-head">
+        <div>
+          <div class="eyebrow">QUIET / SETTINGS</div>
+          <h2>Твой браузер</h2>
+        </div>
+        <button id="close-settings" class="icon" aria-label="Закрыть настройки">
+          ×
+        </button>
+      </div>
+      <nav class="settings-tabs">
+        <button data-section="search" class="selected">Поиск</button
+        ><button data-section="network">Подключения</button
+        ><button data-section="privacy">Приватность</button
+        ><button data-section="tools">Компоненты</button>
+      </nav>
+      <div class="dialog-scroll">
+        <section data-page="search">
+          <h3>Любой поисковик</h3>
+          <p>Добавь URL поиска. Вместо запроса укажи <code>{query}</code>.</p>
+          <label>По умолчанию<select id="default-engine"></select></label>
+          <div id="engine-list"></div>
+          <div class="engine-add">
+            <input
+              id="engine-label"
+              aria-label="Название поисковика"
+              placeholder="Название"
+            /><input
+              id="engine-template"
+              aria-label="Шаблон поиска"
+              placeholder="https://example.org/search?q={query}"
+            /><button id="add-engine">Добавить</button>
+          </div>
+        </section>
+        <section data-page="network" hidden>
+          <h3>Маршрут только для браузера</h3>
+          <p>
+            При смене маршрута вкладки и AI-панели закрываются. Системные
+            настройки сети не меняются.
+          </p>
+          <label
+            >Подключение<select id="network-mode">
+              <option value="direct">Прямое соединение</option>
+              <option value="profile">Встроенный VPN-профиль</option>
+              <option value="tor">Tor — отдельный профиль</option>
+              <option value="socks5">SOCKS5-прокси</option>
+              <option value="http">HTTP-прокси</option>
+              <option value="system">
+                Системный прокси (может иметь прямой маршрут)
+              </option>
+            </select></label
+          >
+          <div id="proxy-fields" class="two-columns">
+            <label
+              >Сервер<input id="proxy-host" placeholder="127.0.0.1" /></label
+            ><label
+              >Порт<input id="proxy-port" type="number" min="1" max="65535"
+            /></label>
+          </div>
+          <div class="notice">
+            Tor скрывает IP через сеть Tor, но не даёт защиту от отпечатка
+            уровня Tor Browser. Вход в личные аккаунты раскрывает личность
+            сайту. Загрузки файлов в Tor отключены.
+          </div>
+          <div class="section-divider"></div>
+          <h3>Happ / Xray и AmneziaWG</h3>
+          <p>
+            Встроенные ядра, без внешних окон и системного TUN. Вставь свой
+            профиль. Ключи не отправляются разработчику.
+          </p>
+          <label
+            >Название<input
+              id="profile-name"
+              placeholder="Мой сервер"
+              maxlength="60" /></label
+          ><label
+            >Ключ или конфигурация<textarea
+              id="profile-input"
+              rows="5"
+              spellcheck="false"
+              autocomplete="off"
+              placeholder="vless:// · vmess:// · trojan:// · ss:// · vpn:// · WireGuard/AmneziaWG .conf · Xray JSON"
+            ></textarea></label
+          ><button id="import-profile">Сохранить профиль на устройстве</button>
+          <div id="profile-list"></div>
+          <p class="muted">
+            Не является интерфейсом приложений Happ/Amnezia. Импорт
+            поддерживаемых протоколов; неподдерживаемый профиль выдаст ошибку.
+          </p>
+        </section>
+        <section data-page="privacy" hidden>
+          <h3>Защита по умолчанию</h3>
+          <label class="check"
+            ><input id="blocker-enabled" type="checkbox" /><span
+              >Автоматически загружать uBlock Origin<small
+                >Официальный пакет. Состояние загрузки видно внизу окна.</small
+              ></span
+            ></label
+          ><label class="check"
+            ><input id="media-enabled" type="checkbox" /><span
+              >Разрешить запросы камеры и микрофона<small
+                >Каждый запрос требует подтверждения. В Tor всегда
+                запрещены.</small
+              ></span
+            ></label
+          ><label class="check"
+            ><input id="developer-enabled" type="checkbox" /><span
+              >Режим разработки<small
+                >DevTools, F12 и исследование элементов. Изоляция процессов
+                остаётся включена.</small
+              ></span
+            ></label
+          >
+          <div class="notice">
+            Без истории посещений, аналитики приложения и отправки
+            crash-отчётов. Cookies обычного режима сохраняются для входа на
+            сайты. Сайты и провайдер VPN могут собирать свои данные.
+          </div>
+          <button id="clear-data" class="danger">Удалить cookies и кэш</button>
+        </section>
+        <section data-page="tools" hidden>
+          <h3>Сетевые компоненты</h3>
+          <p>
+            Xray, AmneziaWG, Tor, zapret и uBlock Origin. Версии и источники
+            загрузки:
+          </p>
+          <div id="component-list"></div>
+          <label class="check"
+            ><input id="auto-update" type="checkbox" /><span
+              >Проверять обновления раз в сутки<small
+                >Официальные GitHub-релизы и torproject.org. SHA-256 обязателен.
+                В Tor проверки отключены.</small
+              ></span
+            ></label
+          ><button id="update-components">
+            Проверить и скачать обновления
+          </button>
+          <div class="section-divider"></div>
+          <h3>zapret / YouTube / Discord</h3>
+          <p>
+            Обход DPI — отдельный механизм. Он влияет на системный трафик и
+            требует прав Windows. Браузер не устанавливает службу автоматически.
+          </p>
+          <label>Стратегия<select id="zapret-profile"></select></label
+          ><label class="check"
+            ><input id="auto-zapret" type="checkbox" /><span
+              >Запускать выбранную стратегию вместе с браузером</span
+            ></label
+          ><button id="launch-zapret">Запустить zapret</button>
+          <p class="muted">
+            Подходящая стратегия зависит от провайдера. Окно профиля может
+            запросить UAC.
+          </p>
+          <div id="tool-output" role="status"></div>
+        </section>
+      </div>
+      <div class="dialog-footer">
+        <span>Смена настроек закроет вкладки</span
+        ><button id="save-settings" class="primary">Сохранить</button>
+      </div>
+    </dialog>
+    <script src="renderer.js"></script>
+  </body>
+</html>
