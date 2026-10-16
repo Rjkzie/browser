@@ -1,7 +1,7 @@
 {
   "name": "quiet-browser",
   "productName": "Quiet Browser",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Private desktop browser with AI sidebar and managed network tools",
   "main": "src/main.cjs",
   "author": "Quiet Browser contributors",
@@ -10,9 +10,10 @@
     "start": "electron .",
     "test": "node --test test/*.test.cjs",
     "smoke": "electron . --smoke-test",
+    "perf": "electron . --perf-test",
     "bundle:components": "node scripts/bundle-components.cjs",
     "build:native": "node scripts/native-build.cjs",
-    "build": "node scripts/prepare-distribution.cjs && electron-builder --win portable --x64"
+    "build": "node scripts/prepare-distribution.cjs && electron-builder --win portable zip --x64"
   },
   "devDependencies": {
     "electron": "44.8.0",
@@ -28,6 +29,7 @@
     "files": [
       "src/**/*",
       "test/smoke.cjs",
+      "test/performance.cjs",
       "package.json",
       "README.md",
       "LICENSE"

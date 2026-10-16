@@ -44,7 +44,24 @@ module.exports = async function ({
       path.join(screenshots, "screenshot.png"),
       (await win.webContents.capturePage()).toPNG(),
     );
+    const coldTab = snapshot().activeId;
+    const uiStart = performance.now();
+    const accepted = await win.webContents.executeJavaScript(
+      `quiet.command('navigate',${JSON.stringify(url)})`,
+    );
+    assert.equal(accepted.ok, true);
+    assert.ok(
+      performance.now() - uiStart < 500,
+      "Address-bar navigation blocks the whole UI while uBlock initializes",
+    );
+    await command("new");
+    await command("close", coldTab);
     await command("navigate", url);
+    assert.equal(
+      snapshot().tabs.length,
+      1,
+      "Cancelled initial navigation must not resurrect its closed tab",
+    );
     await until(() => getTab().title === "Quiet fixture" && !getTab().loading);
     const wc = getTab().view.webContents;
     assert.deepEqual(
@@ -151,8 +168,38 @@ module.exports = async function ({
     await win.webContents.executeJavaScript(
       'document.getElementById("close-settings").click()',
     );
+    await command("navigate", url);
+    await until(() => !getTab().loading);
+    const { webContents } = require("electron");
+    const background = webContents
+      .getAllWebContents()
+      .find(
+        (w) =>
+          w.getType() === "backgroundPage" &&
+          w.session === getTab().view.webContents.session,
+      );
+    assert.ok(background);
+    assert.equal(
+      await background.executeJavaScript(
+        `(()=>{const e=chrome.webRequest.onBeforeRequest;const f=()=>({});e.addListener(f,{urls:['https://quiet-fixture.invalid/*']});const added=e.hasListener(f);e.removeListener(f);return added&&!e.hasListener(f)})()`,
+      ),
+      true,
+      "Filter listener identity must survive the statistics wrapper",
+    );
+    background.forcefullyCrashRenderer();
+    await until(() =>
+      snapshot().blockerStatus.some((s) => s.includes("остановлен")),
+    );
+    const hitsBeforeCrash = hits;
+    await command("navigate", url + "?after-filter-crash");
+    await until(() => !!getTab().error);
+    assert.equal(
+      hits,
+      hitsBeforeCrash,
+      "A crashed blocker must not silently disable filtering",
+    );
     console.log(
-      "SMOKE PASS: UI, real navigation, sandbox, URL guard, uBlock blocking, isolated AI cookies, fail-closed proxy.",
+      "SMOKE PASS: UI, navigation, sandbox, uBlock filtering and crash protection, isolated AI cookies, encrypted profiles, fail-closed proxy.",
     );
   } catch (e) {
     console.error("SMOKE FAIL:", e);

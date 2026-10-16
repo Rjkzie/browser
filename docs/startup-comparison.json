@@ -1,0 +1,22 @@
+[
+  {
+    "mode": "seed",
+    "launchToHomeMs": 3261.1
+  },
+  {
+    "mode": "direct",
+    "launchToHomeMs": 473.2
+  },
+  {
+    "mode": "portable",
+    "launchToHomeMs": 25057.6
+  },
+  {
+    "mode": "direct",
+    "launchToHomeMs": 670.1
+  },
+  {
+    "mode": "portable",
+    "launchToHomeMs": 26443.8
+  }
+]

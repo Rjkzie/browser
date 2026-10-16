@@ -4,3 +4,4 @@ components/
 *.log
 .env*
 work/
+app/

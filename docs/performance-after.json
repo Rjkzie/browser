@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-16T16:25:13.088Z",
+  "electron": "44.8.0",
+  "chromium": "152.0.7977.167",
+  "startupMainToHomeMs": 437.88340000000005,
+  "firstNavigationMs": 4367.343,
+  "heavySamplesMs": [
+    565.3426,
+    44.998500000000604,
+    46.99539999999979,
+    58.36760000000049,
+    46.839200000000346
+  ],
+  "heavyMedianMs": 46.99539999999979,
+  "resourceCount": 160,
+  "blockedNavigationMs": 187.52899999999954,
+  "blockedRequests": 160,
+  "tabMutations": 17,
+  "resourcePathEvaluations": 12,
+  "resourceHits": 320,
+  "chrome": {
+    "available": true,
+    "version": "Chrome/155.0.8059.80",
+    "heavySamplesMs": [
+      39.908400000000256,
+      47.40319999999974,
+      44.39179999999942,
+      42.69470000000001,
+      42.257799999999406
+    ],
+    "heavyMedianMs": 42.69470000000001
+  }
+}

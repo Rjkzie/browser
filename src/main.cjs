@@ -24,12 +24,16 @@ const {
 } = require("./policy.cjs");
 const { Components, find, powershell, psLiteral } = require("./components.cjs");
 const { ProfileStore, xrayConfig } = require("./profiles.cjs");
-const { prepareUBlock, attachFilter } = require("./ublock.cjs");
-const smoke = process.argv.includes("--smoke-test");
+const { prepareUBlock, attachFilter, detachFilter } = require("./ublock.cjs");
+const perfStarted = performance.now();
+const perfTest = process.argv.includes("--perf-test");
+const startupProbe = process.argv.includes("--startup-probe");
+const smoke = process.argv.includes("--smoke-test") || perfTest || startupProbe;
 if (smoke)
   app.setPath(
     "userData",
-    path.join(require("node:os").tmpdir(), `quiet-smoke-${process.pid}`),
+    process.env.QUIET_TEST_PROFILE ||
+      path.join(require("node:os").tmpdir(), `quiet-smoke-${process.pid}`),
   );
 app.enableSandbox();
 if (smoke)
@@ -102,6 +106,7 @@ function snapshot() {
       title: t.title,
       url: t.url,
       loading: t.loading,
+      preparing: t.loading && !t.view,
       error: t.error,
       back: t.view?.webContents.navigationHistory.canGoBack() || false,
       forward: t.view?.webContents.navigationHistory.canGoForward() || false,
@@ -116,9 +121,15 @@ function snapshot() {
     blockerStatus: [...extensionState.values()],
   };
 }
+let stateTimer;
 function emit() {
-  if (win && !win.isDestroyed())
-    win.webContents.send("quiet:state", snapshot());
+  if (stateTimer) return;
+  stateTimer = setTimeout(() => {
+    stateTimer = undefined;
+    if (win && !win.isDestroyed())
+      win.webContents.send("quiet:state", snapshot());
+  }, 16);
+  stateTimer.unref();
 }
 function status(text) {
   toolStatus = text;
@@ -162,7 +173,7 @@ async function browserSession(name) {
   return pending;
 }
 async function initializeSession(ses, tor) {
-  if(smoke)console.log('SMOKE: initialize browser session');
+  if (smoke) console.log("SMOKE: initialize browser session");
   sessions.add(ses);
   if (tor) {
     await ses.clearStorageData();
@@ -228,14 +239,25 @@ async function initializeSession(ses, tor) {
       const ext = await ses.extensions.loadExtension(path.dirname(manifest), {
         allowFileAccess: false,
       });
-      await attachFilter(ses, ext.id, () => {
-        blocked++;
-        emit();
-      });
-      if(smoke)console.log('SMOKE: uBlock ready');
+      await attachFilter(
+        ses,
+        ext.id,
+        (count = 1) => {
+          blocked += count;
+          emit();
+        },
+        () => {
+          extensionState.set(
+            ses,
+            "uBlock остановлен. Запросы заблокированы. Перезапусти браузер.",
+          );
+          emit();
+        },
+      );
+      if (smoke) console.log("SMOKE: uBlock ready");
       extensionState.set(ses, `uBlock Origin ${ext.version}`);
     } catch (e) {
-      if(smoke)console.log('SMOKE: uBlock error',e.message);
+      if (smoke) console.log("SMOKE: uBlock error", e.message);
       extensionState.set(ses, `uBlock не загружен: ${e.message}`);
     }
   } else extensionState.set(ses, "Блокировщик отключён");
@@ -353,6 +375,8 @@ async function newTab(input = "") {
 async function loadTab(tab, input) {
   const search = config.engines.find((e) => e.id === config.search);
   const url = navigate(input, search, config.network.mode === "tor");
+  const generation = (tab.generation || 0) + 1;
+  tab.generation = generation;
   tab.error = "";
   if (url === "quiet:home") {
     if (tab.view) {
@@ -367,8 +391,14 @@ async function loadTab(tab, input) {
     return;
   }
   if (!tab.view) {
+    tab.url = url;
+    tab.title = new URL(url).hostname;
+    tab.loading = true;
+    layout();
+    const ses = await browserSession("web");
+    if (tab.generation !== generation || !tabs.includes(tab)) return;
     tab.view = new WebContentsView({
-      webPreferences: prefs(await browserSession("web")),
+      webPreferences: prefs(ses),
     });
     secureView(tab.view);
     win.contentView.addChildView(tab.view);
@@ -409,6 +439,7 @@ async function loadTab(tab, input) {
   tab.title = new URL(url).hostname;
   layout();
   tab.view.webContents.loadURL(url).catch((e) => {
+    if (tab.generation !== generation || !tabs.includes(tab)) return;
     if (e.code !== "ERR_ABORTED") {
       tab.error = e.message;
       tab.loading = false;
@@ -420,6 +451,7 @@ async function closeTab(id) {
   const i = tabs.findIndex((t) => t.id === id);
   if (i < 0) return;
   const [tab] = tabs.splice(i, 1);
+  tab.generation = (tab.generation || 0) + 1;
   if (tab.view) {
     win.contentView.removeChildView(tab.view);
     tab.view.webContents.close();
@@ -454,6 +486,7 @@ async function showAI(key) {
   layout();
 }
 async function closeViews() {
+  await Promise.allSettled([...sessionInit.values()]);
   for (const tab of [...tabs]) await closeTab(tab.id);
   for (const view of aiViews.values()) {
     win.contentView.removeChildView(view);
@@ -463,7 +496,7 @@ async function closeViews() {
   aiKey = null;
   for (const ses of sessions) {
     await ses.closeAllConnections();
-    ses.webRequest.onBeforeRequest(null);
+    detachFilter(ses);
     for (const ext of ses.extensions.getAllExtensions())
       ses.extensions.removeExtension(ext.id);
   }
@@ -827,6 +860,16 @@ async function boot() {
       return { ok: false, error: "Forbidden" };
     const execute = async () => {
       try {
+        if (action === "navigate") {
+          if (changing) throw Error("Дождись смены сети");
+          navigate(
+            data,
+            config.engines.find((e) => e.id === config.search),
+            config.network.mode === "tor",
+          );
+          void command(action, data).catch((e) => status(e.message));
+          return { ok: true, value: snapshot() };
+        }
         return { ok: true, value: await command(action, data) };
       } catch (e) {
         return { ok: false, error: e.message };
@@ -843,6 +886,20 @@ async function boot() {
   win.on("resize", layout);
   await win.loadFile(path.join(__dirname, "ui/index.html"));
   await newTab();
+  if (startupProbe) {
+    if (!process.env.QUIET_PERF_OUTPUT)
+      throw Error("QUIET_PERF_OUTPUT required");
+    await fs.writeFile(
+      process.env.QUIET_PERF_OUTPUT,
+      JSON.stringify({
+        homeReady: true,
+        mainMs: performance.now() - perfStarted,
+      }),
+    );
+    app.exit(0);
+    return;
+  }
+  if (!smoke) browserSession("web").catch((e) => status(e.message));
   if (config.network.mode === "tor") {
     try {
       await startTor();
@@ -880,7 +937,7 @@ async function boot() {
     timer.unref();
   }
   if (smoke)
-    await require("../test/smoke.cjs")({
+    await require(perfTest ? "../test/performance.cjs" : "../test/smoke.cjs")({
       app,
       win,
       command,
@@ -889,6 +946,7 @@ async function boot() {
       components,
       getTab: () => tabs.find((t) => t.id === activeId),
       layout,
+      startupMs: performance.now() - perfStarted,
     });
 }
 app

@@ -713,3 +713,15 @@ body.ai-open h1 {
 #home {
   overflow: hidden;
 }
+#page-loading {
+  padding: 100px 12%;
+  color: #a7b1c8;
+}
+#page-loading h2 {
+  color: #dce1ef;
+  font-size: 22px;
+}
+#page-loading p {
+  font-size: 13px;
+  margin-top: 16px;
+}

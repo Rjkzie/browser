@@ -6,6 +6,31 @@
   if (globalThis.browser instanceof Object)
     globalThis.chrome = globalThis.browser;
   else globalThis.browser = globalThis.chrome;
+  // Keep filtering in Chromium's extension callbacks. Only aggregated counters
+  // cross to the host, never a round-trip for each requested resource.
+  let blockedTotal = 0;
+  globalThis.__quietBlockedCount = () => blockedTotal;
+  const beforeRequest = chrome.webRequest.onBeforeRequest;
+  const addBeforeRequest = beforeRequest.addListener.bind(beforeRequest);
+  const removeBeforeRequest = beforeRequest.removeListener.bind(beforeRequest);
+  const hasBeforeRequest = beforeRequest.hasListener.bind(beforeRequest);
+  const wrappedListeners = new WeakMap();
+  beforeRequest.addListener = (listener, ...args) => {
+    let wrapped = wrappedListeners.get(listener);
+    if (!wrapped) {
+      wrapped = (details) => {
+        const result = listener(details);
+        if (result?.cancel || result?.redirectUrl) blockedTotal++;
+        return result;
+      };
+      wrappedListeners.set(listener, wrapped);
+    }
+    addBeforeRequest(wrapped, ...args);
+  };
+  beforeRequest.removeListener = (listener) =>
+    removeBeforeRequest(wrappedListeners.get(listener) || listener);
+  beforeRequest.hasListener = (listener) =>
+    hasBeforeRequest(wrappedListeners.get(listener) || listener);
   const event = () => {
     const listeners = new Set();
     return {

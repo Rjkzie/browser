@@ -40,41 +40,69 @@ function button(text, action) {
   b.onclick = action;
   return b;
 }
+const tabNodes = new Map();
+function renderTabs(tabs, activeId) {
+  const live = new Set(tabs.map((t) => t.id));
+  for (const [id, record] of tabNodes)
+    if (!live.has(id)) {
+      record.node.remove();
+      tabNodes.delete(id);
+    }
+  tabs.forEach((tab, index) => {
+    let record = tabNodes.get(tab.id);
+    if (!record) {
+      const node = document.createElement("div");
+      node.className = "tab";
+      node.setAttribute("role", "tab");
+      node.onclick = () => cmd("activate", tab.id);
+      node.onkeydown = (e) => {
+        if (e.key === "Enter" || e.key === " ") cmd("activate", tab.id);
+      };
+      const icon = document.createElement("span");
+      icon.className = "tab-icon";
+      const label = document.createElement("span");
+      label.className = "tab-title";
+      const close = button("×", (e) => {});
+      close.className = "tab-close";
+      close.onclick = (e) => {
+        e.stopPropagation();
+        cmd("close", tab.id);
+      };
+      node.append(icon, label, close);
+      record = { node, icon, label, close };
+      tabNodes.set(tab.id, record);
+    }
+    const selected = tab.id === activeId;
+    if (record.selected !== selected) {
+      record.node.classList.toggle("active", selected);
+      record.node.setAttribute("aria-selected", String(selected));
+      record.node.tabIndex = selected ? 0 : -1;
+      record.selected = selected;
+    }
+    if (record.title !== tab.title) {
+      record.label.textContent = tab.title;
+      record.label.title = tab.title;
+      record.close.setAttribute("aria-label", "Закрыть " + tab.title);
+      record.title = tab.title;
+    }
+    if (record.loading !== tab.loading) {
+      record.icon.textContent = tab.loading ? "◌" : "◈";
+      record.loading = tab.loading;
+    }
+    const current = $("tabs").children[index];
+    if (current !== record.node)
+      $("tabs").insertBefore(record.node, current || null);
+  });
+}
 function render(value) {
   state = value;
   const tab = state.tabs.find((t) => t.id === state.activeId);
-  $("tabs").replaceChildren();
-  for (const t of state.tabs) {
-    const node = document.createElement("div");
-    node.className = "tab" + (t.id === state.activeId ? " active" : "");
-    node.setAttribute("role", "tab");
-    node.setAttribute("aria-selected", String(t.id === state.activeId));
-    node.tabIndex = t.id === state.activeId ? 0 : -1;
-    node.onclick = () => cmd("activate", t.id);
-    node.onkeydown = (e) => {
-      if (e.key === "Enter" || e.key === " ") cmd("activate", t.id);
-    };
-    const icon = document.createElement("span");
-    icon.className = "tab-icon";
-    icon.textContent = t.loading ? "◌" : "◈";
-    const label = document.createElement("span");
-    label.className = "tab-title";
-    label.textContent = t.title;
-    label.title = t.title;
-    const close = button("×", (e) => {});
-    close.className = "tab-close";
-    close.setAttribute("aria-label", "Закрыть " + t.title);
-    close.onclick = (e) => {
-      e.stopPropagation();
-      cmd("close", t.id);
-    };
-    node.append(icon, label, close);
-    $("tabs").append(node);
-  }
+  renderTabs(state.tabs, state.activeId);
   if (document.activeElement !== $("address"))
     $("address").value = tab?.url === "quiet:home" ? "" : tab?.url || "";
   $("home").hidden = tab?.url !== "quiet:home" || !!tab?.error;
   $("page-error").hidden = !tab?.error;
+  $("page-loading").hidden = !tab?.preparing;
   $("page-error-text").textContent = tab?.error || "";
   $("back").disabled = !tab?.back;
   $("forward").disabled = !tab?.forward;
